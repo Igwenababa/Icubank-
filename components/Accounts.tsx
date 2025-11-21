@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Account, AccountType, Transaction, VerificationLevel } from '../types.ts';
 import { getAccountPerks } from '../services/geminiService.ts';
@@ -5,13 +6,14 @@ import { getAccountPerks } from '../services/geminiService.ts';
 // FIX: Imported the missing `BankIcon` component.
 // FIX: Add missing icons
 import { SpinnerIcon, ShieldCheckIcon, CreditCardIcon, PiggyBankIcon, BuildingOfficeIcon, BankIcon, DepositIcon, CheckCircleIcon, PencilIcon, getBankIcon, ICreditUnionLogo, ClockIcon, ClipboardDocumentIcon, GlobeAmericasIcon } from './Icons.tsx';
-import { USER_PROFILE } from '../constants.ts';
+import { USER_PROFILE, EXCHANGE_RATES } from '../constants.ts';
 
 interface AccountsProps {
     accounts: Account[];
     transactions: Transaction[];
     verificationLevel: VerificationLevel;
     onUpdateAccountNickname: (accountId: string, nickname: string) => void;
+    displayCurrency?: string;
 }
 
 const UserProfileCard: React.FC<{ verificationLevel: VerificationLevel }> = ({ verificationLevel }) => {
@@ -103,8 +105,15 @@ const AccountPerks: React.FC<{ accountType: AccountType, verificationLevel: Veri
     );
 };
 
+interface AccountCardProps {
+    account: Account;
+    onUpdateNickname: (id: string, name: string) => void;
+    verificationLevel: VerificationLevel;
+    displayCurrency: string;
+}
+
 // FIX: Added missing AccountCard and Accounts components to resolve export error.
-const AccountCard: React.FC<{ account: Account, onUpdateNickname: (id: string, name: string) => void, verificationLevel: VerificationLevel }> = ({ account, onUpdateNickname, verificationLevel }) => {
+const AccountCard: React.FC<AccountCardProps> = ({ account, onUpdateNickname, verificationLevel, displayCurrency }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [nickname, setNickname] = useState(account.nickname || '');
 
@@ -122,6 +131,9 @@ const AccountCard: React.FC<{ account: Account, onUpdateNickname: (id: string, n
         }
     };
     
+    const exchangeRate = EXCHANGE_RATES[displayCurrency] || 1;
+    const convertedBalance = account.balance * exchangeRate;
+
     return (
         <div className="bg-slate-200 rounded-2xl shadow-digital p-6">
             <div className="flex justify-between items-start">
@@ -140,7 +152,7 @@ const AccountCard: React.FC<{ account: Account, onUpdateNickname: (id: string, n
                     </div>
                 </div>
                 <div className="text-right">
-                    <p className="text-2xl font-bold text-slate-800 font-mono">{account.balance.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p>
+                    <p className="text-2xl font-bold text-slate-800 font-mono">{convertedBalance.toLocaleString('en-US', { style: 'currency', currency: displayCurrency })}</p>
                     <p className="text-xs text-slate-500">{account.status}</p>
                 </div>
             </div>
@@ -150,7 +162,7 @@ const AccountCard: React.FC<{ account: Account, onUpdateNickname: (id: string, n
 };
 
 
-export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, verificationLevel, onUpdateAccountNickname }) => {
+export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, verificationLevel, onUpdateAccountNickname, displayCurrency = 'USD' }) => {
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
         <UserProfileCard verificationLevel={verificationLevel} />
@@ -164,6 +176,7 @@ export const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, veri
                         account={account} 
                         onUpdateNickname={onUpdateAccountNickname}
                         verificationLevel={verificationLevel}
+                        displayCurrency={displayCurrency}
                     />
                 ))}
             </div>

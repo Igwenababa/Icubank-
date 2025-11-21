@@ -14,12 +14,14 @@ import {
     BuildingOfficeIcon,
     ShieldCheckIcon,
     SparklesIcon,
-    ChartBarIcon
+    ChartBarIcon,
+    getBankIcon
 } from './Icons.tsx';
 import { AccountCarousel } from './AccountCarousel.tsx';
 import { QuickTransfer } from './QuickTransfer.tsx';
 import { FinancialNews } from './FinancialNews.tsx';
 import { useLanguage } from '../contexts/LanguageContext.tsx';
+import { EXCHANGE_RATES } from '../constants.ts';
 
 interface DashboardProps {
   accounts: Account[];
@@ -31,6 +33,7 @@ interface DashboardProps {
   totalNetWorth: number;
   portfolioChange24h: number;
   userProfile: UserProfile;
+  displayCurrency?: string;
 }
 
 // Mini Transaction Row Component
@@ -38,15 +41,20 @@ const DashboardTransactionRow: React.FC<{ tx: Transaction }> = ({ tx }) => {
     const isCredit = tx.type === 'credit';
     const date = tx.statusTimestamps[TransactionStatus.SUBMITTED] || new Date();
     
+    const BankIconComponent = useMemo(() => isCredit ? null : getBankIcon(tx.recipient.bankName), [isCredit, tx.recipient.bankName]);
+
     return (
         <div className="flex items-center justify-between py-4 border-b border-slate-700/50 last:border-0 hover:bg-white/5 transition-colors px-3 rounded-lg group cursor-default">
             <div className="flex items-center gap-4">
-                 <div className={`p-2.5 rounded-full flex-shrink-0 ${isCredit ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20' : 'bg-slate-700/50 text-slate-300 ring-1 ring-slate-600/50'}`}>
-                    {isCredit ? <ArrowDownCircleIcon className="w-5 h-5" /> : <ArrowUpCircleIcon className="w-5 h-5" />}
+                 <div className={`w-10 h-10 flex items-center justify-center rounded-full flex-shrink-0 ${isCredit ? 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20' : 'bg-white shadow-sm overflow-hidden'}`}>
+                    {isCredit ? <ArrowDownCircleIcon className="w-6 h-6" /> : (BankIconComponent && <BankIconComponent className="w-6 h-6 object-contain" />)}
                  </div>
                  <div>
                      <p className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">{isCredit ? 'Deposit' : tx.recipient.fullName}</p>
-                     <p className="text-xs text-slate-500 font-medium">{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} • {tx.status}</p>
+                     <p className="text-xs text-slate-500 font-medium">
+                        {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {!isCredit && <span className="text-slate-400"> • {tx.recipient.bankName}</span>}
+                     </p>
                  </div>
             </div>
             <span className={`font-mono text-sm font-semibold ${isCredit ? 'text-emerald-400' : 'text-slate-200'}`}>
@@ -66,6 +74,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   totalNetWorth,
   portfolioChange24h,
   userProfile,
+  displayCurrency = 'USD',
 }) => {
   const [isBalanceVisible, setIsBalanceVisible] = useState(true);
   const { t } = useLanguage();
@@ -77,6 +86,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, [userProfile.name]);
 
   const activeTravelPlans = travelPlans.filter(plan => plan.status === TravelPlanStatus.ACTIVE);
+
+  // Currency Conversion Logic
+  const exchangeRate = EXCHANGE_RATES[displayCurrency] || 1;
+  const convertedNetWorth = totalNetWorth * exchangeRate;
 
   return (
     <div className="space-y-8 animate-fade-in-up font-sans">
@@ -169,7 +182,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     </button>
                                 </div>
                                 <div className={`text-xl font-bold text-white tracking-tight transition-all duration-500 ${isBalanceVisible ? '' : 'blur-sm select-none'}`}>
-                                    {isBalanceVisible ? totalNetWorth.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '$ •••••••••'}
+                                    {isBalanceVisible ? convertedNetWorth.toLocaleString('en-US', { style: 'currency', currency: displayCurrency }) : '$ •••••••••'}
                                 </div>
                             </div>
                             <div className="flex flex-col items-end">
@@ -185,7 +198,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                 {/* Carousel Container */}
                 <div className="pb-6 px-2">
-                    <AccountCarousel accounts={accounts} isBalanceVisible={isBalanceVisible} setActiveView={setActiveView} />
+                    <AccountCarousel 
+                        accounts={accounts} 
+                        isBalanceVisible={isBalanceVisible} 
+                        setActiveView={setActiveView} 
+                        displayCurrency={displayCurrency}
+                        exchangeRate={exchangeRate}
+                    />
                 </div>
             </section>
 

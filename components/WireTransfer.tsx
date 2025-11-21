@@ -1,13 +1,15 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Account, Recipient, Country, Transaction, AdvancedTransferLimits } from '../types.ts';
 import { DOMESTIC_WIRE_FEE, INTERNATIONAL_WIRE_FEE, TRANSFER_PURPOSES, USER_PIN, EXCHANGE_RATES, ALL_COUNTRIES } from '../constants.ts';
 import { 
-    CurrencyDollarIcon, UserCircleIcon, BankIcon, EyeIcon, CheckCircleIcon, 
-    XIcon, InfoIcon, UserGroupIcon, SpinnerIcon 
+    CurrencyDollarIcon, UserCircleIcon, BankIcon, CheckCircleIcon, 
+    XIcon, InfoIcon, UserGroupIcon, ShieldCheckIcon, DocumentCheckIcon, ExclamationTriangleIcon, LockClosedIcon
 } from './Icons.tsx';
 import { CountrySelector } from './CountrySelector.tsx';
 import { BankSelector } from './BankSelector.tsx';
 import { RecipientSelector } from './RecipientSelector.tsx';
+import { ComplianceHaltModal } from './ComplianceHaltModal.tsx';
 
 interface WireTransferProps {
     accounts: Account[];
@@ -27,8 +29,8 @@ const stepsConfig = [
     { label: 'Details', icon: <CurrencyDollarIcon className="w-6 h-6" /> },
     { label: 'Recipient', icon: <UserCircleIcon className="w-6 h-6" /> },
     { label: 'Bank Info', icon: <BankIcon className="w-6 h-6" /> },
-    { label: 'Review', icon: <EyeIcon className="w-6 h-6" /> },
-    { label: 'Confirm', icon: <CheckCircleIcon className="w-6 h-6" /> },
+    { label: 'Legal Review', icon: <DocumentCheckIcon className="w-6 h-6" /> },
+    { label: 'Network', icon: <ShieldCheckIcon className="w-6 h-6" /> },
 ];
 
 const StepIndicator: React.FC<{ currentStep: number }> = ({ currentStep }) => (
@@ -89,6 +91,17 @@ export const WireTransfer: React.FC<WireTransferProps> = ({ accounts, onSendWire
     const [sentTransaction, setSentTransaction] = useState<Transaction | null>(null);
     const [pin, setPin] = useState('');
     const [saveRecipient, setSaveRecipient] = useState(true);
+    
+    // Professional Consents
+    const [consents, setConsents] = useState({
+        accuracy: false,
+        auth: false,
+        aml: false,
+        irrevocable: false
+    });
+
+    // Compliance Halt State
+    const [showComplianceHalt, setShowComplianceHalt] = useState(false);
 
     const [formData, setFormData] = useState({
         sourceAccountId: accounts.find(a => a.balance > 0)?.id || '',
@@ -209,6 +222,9 @@ export const WireTransfer: React.FC<WireTransferProps> = ({ accounts, onSendWire
                 break;
             case 3:
                  if (pin !== USER_PIN) newErrors.pin = "Incorrect PIN.";
+                 if (!consents.accuracy || !consents.auth || !consents.aml || !consents.irrevocable) {
+                     newErrors.consents = "You must acknowledge all legal consents.";
+                 }
                  break;
         }
         setErrors(newErrors);
@@ -223,11 +239,17 @@ export const WireTransfer: React.FC<WireTransferProps> = ({ accounts, onSendWire
 
     const handleBack = () => setStep(prev => prev - 1);
     
-    const handleSend = async () => {
-        if (!validateStep(3)) return;
+    const handlePreSubmit = () => {
+        if (validateStep(3)) {
+            // CRITICAL: HALT FOR COMPLIANCE BEFORE SENDING TO NETWORK
+            setShowComplianceHalt(true);
+        }
+    };
 
+    const executeTransaction = async () => {
         setIsProcessing(true);
-        
+        setShowComplianceHalt(false); 
+
         const recipientForTx: Recipient = {
             id: `temp_${Date.now()}`,
             fullName: formData.recipientName,
@@ -289,6 +311,16 @@ export const WireTransfer: React.FC<WireTransferProps> = ({ accounts, onSendWire
 
     return (
         <>
+            {/* STRICT ITCC COMPLIANCE HALT */}
+            {showComplianceHalt && (
+                <ComplianceHaltModal 
+                    isOpen={showComplianceHalt}
+                    amount={numericAmount}
+                    onVerified={executeTransaction}
+                    onCancel={() => setShowComplianceHalt(false)}
+                />
+            )}
+
             {isRecipientSelectorOpen && (
                 <RecipientSelector 
                     recipients={recipients} 
@@ -300,7 +332,7 @@ export const WireTransfer: React.FC<WireTransferProps> = ({ accounts, onSendWire
                 <BankSelector 
                     countryCode={formData.recipientCountry.code}
                     onSelect={handleBankSelect}
-                    onClose={() => setIsBankSelectorOpen(false)}
+                    onClose={() => setIsBankSelectorOpen(false)} 
                 />
             )}
             <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
@@ -404,7 +436,8 @@ export const WireTransfer: React.FC<WireTransferProps> = ({ accounts, onSendWire
 
                          {step === 3 && (
                              <div className="space-y-6 max-w-2xl mx-auto animate-fade-in-up">
-                                <FieldSet legend="Review & Authorize">
+                                <div className="bg-slate-800/80 border border-slate-600 rounded-lg p-6 shadow-lg">
+                                    <h3 className="text-lg font-bold text-white border-b border-slate-600 pb-3 mb-4">Transaction Summary</h3>
                                     <div className="grid grid-cols-2 gap-4 text-sm text-slate-300">
                                         <p><strong>Amount:</strong> {numericAmount.toLocaleString('en-US',{style:'currency', currency:'USD'})}</p>
                                         <p><strong>Fee:</strong> {fee.toLocaleString('en-US',{style:'currency', currency:'USD'})}</p>
@@ -413,9 +446,37 @@ export const WireTransfer: React.FC<WireTransferProps> = ({ accounts, onSendWire
                                         <p className="col-span-2"><strong>To:</strong> {formData.recipientName}</p>
                                         <p className="col-span-2"><strong>Bank:</strong> {formData.bankName} (••••{formData.accountNumber.slice(-4)})</p>
                                     </div>
-                                </FieldSet>
+                                </div>
+
+                                <div className="bg-white/5 border border-white/10 rounded-lg p-6">
+                                    <div className="flex items-center gap-2 mb-4 text-yellow-400">
+                                        <ExclamationTriangleIcon className="w-6 h-6" />
+                                        <h3 className="font-bold uppercase tracking-wide">Consent Declaration</h3>
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                        <label className="flex items-start gap-3 cursor-pointer">
+                                            <input type="checkbox" checked={consents.accuracy} onChange={e => setConsents({...consents, accuracy: e.target.checked})} className="mt-1 w-4 h-4 text-primary bg-transparent border-slate-500 rounded focus:ring-primary" />
+                                            <span className="text-xs text-slate-300">I certify that the information provided is accurate. I understand that incorrect details may lead to loss of funds.</span>
+                                        </label>
+                                        <label className="flex items-start gap-3 cursor-pointer">
+                                            <input type="checkbox" checked={consents.auth} onChange={e => setConsents({...consents, auth: e.target.checked})} className="mt-1 w-4 h-4 text-primary bg-transparent border-slate-500 rounded focus:ring-primary" />
+                                            <span className="text-xs text-slate-300">I authorize iCredit Union to debit my account for the total amount including fees.</span>
+                                        </label>
+                                        <label className="flex items-start gap-3 cursor-pointer">
+                                            <input type="checkbox" checked={consents.aml} onChange={e => setConsents({...consents, aml: e.target.checked})} className="mt-1 w-4 h-4 text-primary bg-transparent border-slate-500 rounded focus:ring-primary" />
+                                            <span className="text-xs text-slate-300">I verify that this transaction complies with all applicable AML (Anti-Money Laundering) laws.</span>
+                                        </label>
+                                        <label className="flex items-start gap-3 cursor-pointer">
+                                            <input type="checkbox" checked={consents.irrevocable} onChange={e => setConsents({...consents, irrevocable: e.target.checked})} className="mt-1 w-4 h-4 text-primary bg-transparent border-slate-500 rounded focus:ring-primary" />
+                                            <span className="text-xs text-slate-300">I acknowledge that this wire transfer is <strong>irrevocable</strong> once released to the network.</span>
+                                        </label>
+                                    </div>
+                                    {errors.consents && <p className="text-red-400 text-xs mt-3 font-bold">{errors.consents}</p>}
+                                </div>
+
                                 <FieldSet legend="Final Authorization">
-                                     <label className="block text-sm font-medium text-slate-300">Enter your 4-digit security PIN to confirm this transfer.</label>
+                                     <label className="block text-sm font-medium text-slate-300">Enter your 4-digit security PIN to confirm.</label>
                                      <input type="password" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} maxLength={4} className={`${inputClasses('pin')} w-48 mx-auto text-center tracking-[1em]`} placeholder="----" />
                                      {errors.pin && <p className="text-red-400 text-xs text-center">{errors.pin}</p>}
                                 </FieldSet>
@@ -436,7 +497,7 @@ export const WireTransfer: React.FC<WireTransferProps> = ({ accounts, onSendWire
 
                     </div>
                     
-                    <div className="relative z-10 p-8 flex-shrink-0 border-t border-slate-700">
+                    <div className="relative z-10 p-8 flex-shrink-0 border-t border-slate-700 bg-slate-900/50">
                        {step < 3 && (
                             <div className="max-w-lg mx-auto flex justify-between">
                                 <button onClick={handleBack} disabled={step === 0} className="px-6 py-2 text-sm font-medium text-slate-300 bg-slate-700/50 hover:bg-slate-700 rounded-lg disabled:opacity-50">Back</button>
@@ -444,11 +505,13 @@ export const WireTransfer: React.FC<WireTransferProps> = ({ accounts, onSendWire
                             </div>
                         )}
                         {step === 3 && (
-                            <div className="max-w-lg mx-auto flex justify-between">
-                                <button onClick={handleBack} disabled={isProcessing} className="px-6 py-2 text-sm font-medium text-slate-300 bg-slate-700/50 hover:bg-slate-700 rounded-lg disabled:opacity-50">Back</button>
-                                <button onClick={handleSend} disabled={isProcessing} className="px-6 py-2 text-sm font-medium text-white bg-green-600 rounded-lg shadow-md flex items-center">
-                                    {isProcessing && <SpinnerIcon className="w-5 h-5 mr-2" />}
-                                    {isProcessing ? 'Processing...' : 'Confirm & Send'}
+                            <div className="max-w-lg mx-auto flex justify-between gap-4">
+                                <button onClick={onClose} className="flex-1 px-6 py-3 text-sm font-bold text-red-400 border border-red-900/50 hover:bg-red-900/20 rounded-lg transition-colors">
+                                    Abort Transaction
+                                </button>
+                                <button onClick={handlePreSubmit} disabled={isProcessing} className="flex-1 px-6 py-3 text-sm font-bold text-white bg-green-600 hover:bg-green-500 rounded-lg shadow-lg shadow-green-900/20 flex items-center justify-center transition-all transform hover:scale-105">
+                                    <LockClosedIcon className="w-4 h-4 mr-2" />
+                                    {isProcessing ? 'Processing...' : 'Execute Wire'}
                                 </button>
                             </div>
                         )}

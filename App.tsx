@@ -1,3 +1,4 @@
+
 // FIX: Import `useRef` from React to resolve 'Cannot find name' errors.
 // FIX: Import `useMemo` from React to resolve 'useMemo is not defined' error.
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
@@ -24,8 +25,8 @@ import { CryptoDashboard } from './components/CryptoDashboard.tsx';
 import { ServicesDashboard } from './components/ServicesDashboard.tsx';
 import { TravelCheckIn } from './components/TravelCheckIn.tsx';
 import { PlatformFeatures } from './components/PlatformFeatures.tsx';
-// FIX: Updated import to match PascalCase component filename
-import { Tasks } from './components/Tasks.tsx';
+// FIX: Updated import to match the correct component file name (lowercase) to resolve casing issues.
+import { Tasks } from './components/tasks.tsx';
 import { Flights } from './components/Flights.tsx';
 import { Utilities } from './components/Utilities.tsx';
 import { Integrations } from './components/Integrations.tsx';
@@ -77,6 +78,9 @@ export const App: React.FC = () => {
   const [wireTransferData, setWireTransferData] = useState<any>(null);
   const [sendMoneyInitialTab, setSendMoneyInitialTab] = useState<'send' | 'split' | 'deposit' | undefined>(undefined);
   const [transactionToRepeat, setTransactionToRepeat] = useState<Transaction | null>(null);
+
+  // Currency State
+  const [displayCurrency, setDisplayCurrency] = useState<string>('USD');
 
   const [transactions, setTransactions] = useState<Transaction[]>(INITIAL_TRANSACTIONS);
   const [recipients, setRecipients] = useState<Recipient[]>(INITIAL_RECIPIENTS);
@@ -148,6 +152,23 @@ export const App: React.FC = () => {
   const [legalModalContent, setLegalModalContent] = useState<{ title: string; content: string } | null>(null);
 
   // ... other state ...
+  
+  // Simulate Geolocated Currency Preference
+  useEffect(() => {
+      // In a real app, you might fetch IP location here
+      // For this demo, we simulate a check that might default to USD or another currency
+      // Keeping default as USD for now, but this hook exists for extensibility
+      const savedCurrency = localStorage.getItem('icu_currency_pref');
+      if (savedCurrency) {
+          setDisplayCurrency(savedCurrency);
+      }
+  }, []);
+
+  // Persist currency choice
+  const handleSetCurrency = (currency: string) => {
+      setDisplayCurrency(currency);
+      localStorage.setItem('icu_currency_pref', currency);
+  };
   
   const addNotification = useCallback((type: NotificationType, title: string, message: string, linkTo?: View) => {
     const newNotification: Notification = {
@@ -843,6 +864,8 @@ export const App: React.FC = () => {
                   onUpdateProfilePicture={onUpdateProfilePicture}
                   onOpenSendMoneyFlow={onOpenSendMoneyFlow}
                   onOpenWireTransfer={onOpenWireTransfer}
+                  displayCurrency={displayCurrency}
+                  setDisplayCurrency={handleSetCurrency}
                 />
 
                 <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -857,6 +880,7 @@ export const App: React.FC = () => {
                       totalNetWorth={totalNetWorth}
                       portfolioChange24h={1.2}
                       userProfile={userProfile}
+                      displayCurrency={displayCurrency}
                     />
                   )}
                   {activeView === 'history' && (
@@ -929,7 +953,7 @@ export const App: React.FC = () => {
                   {activeView === 'insurance' && <Insurance addNotification={addNotification} />}
                   {activeView === 'loans' && <Loans loanApplications={loanApplications} addLoanApplication={addLoanApplication} addNotification={addNotification} />}
                   {activeView === 'support' && <Support />}
-                  {activeView === 'accounts' && <Accounts accounts={accounts} transactions={transactions} verificationLevel={verificationLevel} onUpdateAccountNickname={onUpdateAccountNickname} />}
+                  {activeView === 'accounts' && <Accounts accounts={accounts} transactions={transactions} verificationLevel={verificationLevel} onUpdateAccountNickname={onUpdateAccountNickname} displayCurrency={displayCurrency} />}
                   {activeView === 'crypto' && (
                     <CryptoDashboard 
                         cryptoAssets={cryptoAssets} 

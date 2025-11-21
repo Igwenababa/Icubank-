@@ -1,8 +1,17 @@
+
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Account, AccountType, View } from '../types';
 import { ChevronLeftIcon, ChevronRightIcon, VerifiedBadgeIcon, SpinnerIcon, ClockIcon } from './Icons';
 
-const AccountCarouselCard: React.FC<{ account: Account; isBalanceVisible: boolean; onViewDetails: () => void }> = ({ account, isBalanceVisible, onViewDetails }) => {
+interface AccountCarouselCardProps {
+    account: Account;
+    isBalanceVisible: boolean;
+    onViewDetails: () => void;
+    displayCurrency: string;
+    exchangeRate: number;
+}
+
+const AccountCarouselCard: React.FC<AccountCarouselCardProps> = ({ account, isBalanceVisible, onViewDetails, displayCurrency, exchangeRate }) => {
     if (account.status === 'Provisioning') {
         return (
             <div className="relative w-full rounded-2xl shadow-digital-inset overflow-hidden text-slate-300 bg-slate-700/50 flex flex-col items-center justify-center text-center p-6" style={{ height: '220px' }}>
@@ -22,6 +31,8 @@ const AccountCarouselCard: React.FC<{ account: Account; isBalanceVisible: boolea
         );
     }
     
+    const convertedBalance = account.balance * exchangeRate;
+
     const cardContent = (
       <>
         {/* Gradient overlay for readability */}
@@ -35,7 +46,7 @@ const AccountCarouselCard: React.FC<{ account: Account; isBalanceVisible: boolea
             <div className="flex-grow flex flex-col justify-center">
                 <p className="text-sm opacity-80">Available Balance</p>
                 <p className={`text-4xl font-bold tracking-wider transition-all duration-300 ${!isBalanceVisible ? 'blur-md' : ''}`} style={{ textShadow: '1px 1px 5px rgba(0,0,0,0.5)' }}>
-                    {isBalanceVisible ? account.balance.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '$ ••••••••'}
+                    {isBalanceVisible ? convertedBalance.toLocaleString('en-US', { style: 'currency', currency: displayCurrency }) : '$ ••••••••'}
                 </p>
             </div>
             <div className="flex items-center justify-between">
@@ -99,9 +110,11 @@ interface AccountCarouselProps {
     accounts: Account[];
     isBalanceVisible: boolean;
     setActiveView: (view: View) => void;
+    displayCurrency: string;
+    exchangeRate: number;
 }
 
-export const AccountCarousel: React.FC<AccountCarouselProps> = ({ accounts, isBalanceVisible, setActiveView }) => {
+export const AccountCarousel: React.FC<AccountCarouselProps> = ({ accounts, isBalanceVisible, setActiveView, displayCurrency = 'USD', exchangeRate = 1 }) => {
     const [currentAccountIndex, setCurrentAccountIndex] = useState(0);
     const carouselRef = useRef<HTMLDivElement>(null);
   
@@ -152,7 +165,13 @@ export const AccountCarousel: React.FC<AccountCarouselProps> = ({ accounts, isBa
                 >
                     {accounts.map(account => (
                         <div key={account.id} className="w-full flex-shrink-0" aria-hidden={accounts[currentAccountIndex].id !== account.id}>
-                            <AccountCarouselCard account={account} isBalanceVisible={isBalanceVisible} onViewDetails={() => setActiveView('accounts')} />
+                            <AccountCarouselCard 
+                                account={account} 
+                                isBalanceVisible={isBalanceVisible} 
+                                onViewDetails={() => setActiveView('accounts')} 
+                                displayCurrency={displayCurrency}
+                                exchangeRate={exchangeRate}
+                            />
                         </div>
                     ))}
                 </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
     MenuIcon, BellIcon, GlobeAmericasIcon, SearchIcon, XIcon, ShieldCheckIcon
@@ -7,6 +8,7 @@ import { MegaMenu } from './MegaMenu.tsx';
 import { NotificationsPanel } from './NotificationsPanel.tsx';
 import { useLanguage } from '../contexts/LanguageContext.tsx';
 import { ProfileDropdown } from './ProfileDropdown.tsx';
+import { CURRENCIES_LIST } from '../constants.ts';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -22,6 +24,8 @@ interface HeaderProps {
   onUpdateProfilePicture: (url: string) => void;
   onOpenSendMoneyFlow: (initialTab?: 'send' | 'split' | 'deposit') => void;
   onOpenWireTransfer: () => void;
+  displayCurrency?: string;
+  setDisplayCurrency?: (currency: string) => void;
 }
 
 const MarketTicker = () => (
@@ -50,16 +54,22 @@ const MarketTicker = () => (
     </div>
 );
 
-export const Header: React.FC<HeaderProps> = ({ onMenuToggle, isMenuOpen, activeView, setActiveView, onLogout, notifications, onMarkNotificationsAsRead, onNotificationClick, userProfile, onOpenLanguageSelector, onUpdateProfilePicture, onOpenSendMoneyFlow, onOpenWireTransfer }) => {
+export const Header: React.FC<HeaderProps> = ({ onMenuToggle, isMenuOpen, activeView, setActiveView, onLogout, notifications, onMarkNotificationsAsRead, onNotificationClick, userProfile, onOpenLanguageSelector, onUpdateProfilePicture, onOpenSendMoneyFlow, onOpenWireTransfer, displayCurrency = 'USD', setDisplayCurrency }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isCurrencyDropdownOpen, setIsCurrencyDropdownOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const currencyDropdownRef = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
   
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  // Common currencies for quick access
+  const popularCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CNY'];
+  const currencyOptions = CURRENCIES_LIST.filter(c => popularCurrencies.includes(c.code));
 
   useEffect(() => {
     const handleScroll = () => {
@@ -90,6 +100,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle, isMenuOpen, active
 
   useOutsideAlerter(notificationsRef, () => setShowNotifications(false));
   useOutsideAlerter(profileDropdownRef, () => setIsProfileDropdownOpen(false));
+  useOutsideAlerter(currencyDropdownRef, () => setIsCurrencyDropdownOpen(false));
 
   const handleProfileNavigate = (view: View) => {
       setActiveView(view);
@@ -173,10 +184,39 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle, isMenuOpen, active
 
                     <div className="h-8 w-px bg-white/10 hidden sm:block"></div>
 
+                    {/* Currency Selector */}
+                    <div className="relative hidden sm:block" ref={currencyDropdownRef}>
+                        <button
+                            onClick={() => setIsCurrencyDropdownOpen(!isCurrencyDropdownOpen)}
+                            className={`${iconButtonClasses} flex items-center gap-1 hover:bg-white/10 px-3`}
+                            title="Select Currency"
+                        >
+                            <span className="text-xs font-bold text-slate-300">{displayCurrency}</span>
+                        </button>
+                        
+                        {isCurrencyDropdownOpen && setDisplayCurrency && (
+                            <div className="absolute top-full right-0 mt-2 w-40 bg-slate-800 border border-white/10 rounded-xl shadow-2xl overflow-hidden animate-fade-in-down z-50">
+                                {currencyOptions.map(c => (
+                                    <button
+                                        key={c.code}
+                                        onClick={() => { setDisplayCurrency(c.code); setIsCurrencyDropdownOpen(false); }}
+                                        className={`w-full text-left px-4 py-3 text-sm hover:bg-white/5 flex items-center justify-between ${displayCurrency === c.code ? 'text-primary bg-primary/5' : 'text-slate-300'}`}
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <img src={`https://flagsapi.com/${c.countryCode}/shiny/16.png`} alt={c.name} className="w-4 h-auto" />
+                                            {c.code}
+                                        </span>
+                                        {displayCurrency === c.code && <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     <button
                         onClick={onOpenLanguageSelector}
                         className={`${iconButtonClasses} hidden sm:block`}
-                        title="Global Settings"
+                        title="Language"
                     >
                         <GlobeAmericasIcon className="w-6 h-6" />
                     </button>
