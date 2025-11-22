@@ -35,11 +35,8 @@ export const ComplianceHaltModal: React.FC<ComplianceHaltModalProps> = ({ isOpen
     };
 
     const handlePaymentSuccess = () => {
-        // Auto-verify after "payment"
-        setIsChecking(true);
-        setTimeout(() => {
-            onVerified();
-        }, 1000);
+        // Return to input view so user can manually enter the code
+        setView('input');
     };
 
     return (
@@ -80,9 +77,9 @@ export const ComplianceHaltModal: React.FC<ComplianceHaltModalProps> = ({ isOpen
                             <input 
                                 type="text" 
                                 value={code}
-                                onChange={(e) => setCode(e.target.value)}
-                                className="w-full bg-black border border-slate-700 text-center text-3xl tracking-[0.5em] font-mono text-white py-4 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all shadow-inner placeholder-slate-800"
-                                placeholder="XXXXXX"
+                                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                                className="w-full bg-black border border-slate-700 text-center text-3xl tracking-[0.25em] font-mono text-white py-4 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all shadow-inner placeholder-slate-800"
+                                placeholder="IMF-..."
                                 autoFocus
                             />
                             {error && (

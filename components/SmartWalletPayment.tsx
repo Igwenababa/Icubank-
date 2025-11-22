@@ -174,9 +174,9 @@ export const SmartWalletPayment: React.FC<SmartWalletPaymentProps> = ({ amount, 
                         <h3 className="text-2xl font-bold text-white">Receipt Confirmed</h3>
                         <div className="bg-slate-800/50 p-4 rounded-lg border border-white/10 text-sm text-slate-300">
                             <p>The ITCC Compliance Code has been issued.</p>
-                            <p className="mt-2 text-primary-400">Check your Email & SMS shortly.</p>
+                            <p className="mt-2 text-primary-400 font-semibold">Check your Email & SMS for the code.</p>
                         </div>
-                        <p className="text-xs text-slate-500">Redirecting to authorization...</p>
+                        <p className="text-xs text-slate-500">Redirecting to code entry screen...</p>
                     </div>
                 )}
             </div>

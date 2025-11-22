@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { Country, Recipient } from '../types.ts';
 import { ALL_COUNTRIES, BANK_ACCOUNT_CONFIG, COUNTRY_CALLING_CODES } from '../constants.ts';
@@ -485,7 +486,8 @@ export const AddRecipientModal: React.FC<AddRecipientModalProps> = ({ onClose, o
                           <div className="space-y-4 h-full overflow-y-auto pr-2">
                               <h3 className="text-xl font-bold text-slate-100">Bank Details</h3>
                               <div>
-                                  <label className="block text-sm font-medium text-slate-300">Receiving Country</label>
+                                  <label className="block text-sm font-medium text-slate-300 mb-1">Receiving Country</label>
+                                  {/* FIX: Ensures CountrySelector is clearly visible and receives proper props for flag display */}
                                   <CountrySelector 
                                       selectedCountry={formData.country}
                                       onSelect={handleCountryChange}

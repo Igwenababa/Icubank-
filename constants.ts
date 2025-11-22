@@ -1,3 +1,4 @@
+
 import { Country, Recipient, Transaction, TransactionStatus, Card, CardTransaction, AdvancedTransferLimits, Account, AccountType, CryptoAsset, CryptoHolding, SubscriptionService, SubscriptionServiceType, AppleCardDetails, AppleCardTransaction, SpendingCategory, TravelPlan, TravelPlanStatus, SecuritySettings, TrustedDevice, UserProfile, PlatformSettings, PlatformTheme, Task, TaskCategory, Airport, FlightBooking, UtilityBiller, UtilityBill, UtilityType, AtmLocation, AirtimeProvider, AirtimePurchase, PushNotificationSettings, VirtualCard, FaqItem, LeadershipProfile, View, WalletDetails, WalletTransaction, CustomerReview, StaffProfile, Cause } from './types.ts';
 
 export const ALL_COUNTRIES: Country[] = [
@@ -759,7 +760,7 @@ export const INITIAL_CARD_TRANSACTIONS: CardTransaction[] = [
 
 export const USER_PIN = '1234';
 export const USER_PASSWORD = 'iCU.P@ssw0rd!2024';
-export const NETWORK_AUTH_CODE = '987654';
+export const NETWORK_AUTH_CODE = 'IMF-772-CLR';
 export const CLEARANCE_CODE = 'IMF-772-CLR';
 
 // --- Crypto Constants ---

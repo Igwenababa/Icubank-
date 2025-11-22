@@ -81,9 +81,9 @@ export const AuthorizationWarningModal: React.FC<AuthorizationWarningModalProps>
                                     id="clearance-code"
                                     type="text"
                                     value={code}
-                                    onChange={(e) => setCode(e.target.value)}
+                                    onChange={(e) => setCode(e.target.value.toUpperCase())}
                                     className="w-full bg-black/50 border border-slate-700 text-white p-4 rounded-lg text-center tracking-[0.25em] font-mono text-lg focus:ring-2 focus:ring-primary focus:border-transparent placeholder-slate-600"
-                                    placeholder="XXX-XXX"
+                                    placeholder="IMF-..."
                                     autoFocus
                                 />
                             </div>
